@@ -1,0 +1,104 @@
+---
+title: "Motor Trends Analysis"
+author: "Kushal Kharel"
+date: "1/13/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Motor Trend Analysis
+
+```{r cars}
+data(mtcars)
+head(mtcars)
+str(mtcars)
+```
+
+Correlation coefficients between mpg & other variables.
+
+```{r}
+require(stats)
+round(cor(mtcars)[-1,1], 2)
+```
+
+Scatterplot showing relationship between all variables
+
+```{r}
+library(psych)
+pairs.panels(mtcars[,1:11],
+             method = "pearson", # correlation method
+             hist.col = "#00AFBB",
+             density = TRUE,  # show density plots
+             ellipses = TRUE, # show correlation ellipses
+             scale = TRUE,
+             cor = FALSE,
+             rug = FALSE,
+             stars = TRUE,
+)
+```
+
+Lets create factor variables of automatic and manual and find the mean mpg between Automatic and Manual Transmission
+
+```{r}
+mtcars$am   <- factor(mtcars$am, labels = c("Automatic", "Manual"))
+c(mean(subset(mtcars, mtcars$am=="Automatic")$mpg), 
+  mean(subset(mtcars, mtcars$am=="Manual")$mpg))
+```
+We can see that Manual transmission gives better mileage on average than automatic transmission
+
+Let's look at the boxplot of MPG against Transmission.
+```{r}
+library(ggplot2)
+plot1 <- ggplot(mtcars, aes(x=factor(am), y=mpg, fill=factor(am)))
+plot1 + geom_boxplot(notch=F) + 
+  scale_x_discrete("Transmission") +   
+  scale_y_continuous("Miles per gallon") +  
+  ggtitle("Miles per gallon Vs. transmission")
+```
+
+Now let's perform hypothesis testing. 
+Null Hypothesis : There is no difference in MPG for different transmission.
+Alternative : There is a difference in MPG for different transmission.
+```{r}
+t.test(mtcars$mpg~mtcars$am,conf.level = 0.95)$p.value 
+```
+
+Since our p-value is really small at 95% CI, we reject null hypothesis and conclude that alternative is true.
+
+Let's verify it by fitting regression.
+Since we are interested in knowing which transmission is better, we can fit the regression model against mpg.
+```{r}
+fit <- lm(mpg~am, data = mtcars)
+summary(fit)
+```
+The coefficient shows us that with manual transmission, mpg increases by 7.245.We can also see that our p-value is very small which suggests that our result is significant.However, we can see from our fit that variance is only explained for 36% of our data. So, the coefficients obtained are biased without considering other variables. We know we can better fit the model with multiple variables.We can explain variance of MPG in much better way.Let's try to fit the model with all the variables included.
+```{r}
+fit1 <- lm(mpg~., data = mtcars)
+summary(fit1)
+```
+
+Our model is much better but how do we decide which variables to include? We can just run the following code with step function. It will select significant variables by calling lm repeatedly.
+```{r}
+fit2 <- step(lm(mpg~., data=mtcars), trace=0)
+summary(fit2)
+```
+
+Our fit2 model included wt, qsec and am variables which explained the variance of mpg  for 85% of our data. So, car weight and acceleration must be present to study the effect of transmission on mpg
+
+Let's compare the models
+```{r}
+anova(fit,fit1,fit2)
+```
+
+Let's look at residual plot.
+
+```{r}
+par(mfrow = c(2,2))
+plot(fit2)
+```
+
+
+
